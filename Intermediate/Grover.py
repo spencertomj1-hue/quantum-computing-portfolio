@@ -9,72 +9,71 @@ import numpy as np
 from Functions import mcz
 import matplotlib.pyplot as plt
 
-n = 6
-marked = "101101"
-m = 1
-N = 2**n
-samples = 5000
+
+def Grovers_algo(n,marked_list,samples):
+
+    qc = QuantumCircuit(n,n)
+
+    #values
+    N = 2**n
+    m = len(marked_list)
+    num_iter = int((np.pi/4)*(np.sqrt(N/m)))
+
+    #prep
+
+    for i in range(n):
+        qc.h(i)
 
 
-qc = QuantumCircuit(n,n)
+    def grover_iteration(qc, marked_list, n):
 
-#prep
+        # %%%%%%%%%  oracle  %%%%%%%%%
 
-for i in range(n):
-    qc.h(i)
+        # grab pos of zeros in marked
+        for marked in marked_list:
+            zero_pos = []
+            for ind, val in enumerate(marked):
+                if val == '0':
+                    zero_pos.append(ind)
 
+            # flip qubits in position of zeros in marked
+            for k in zero_pos:
+                qc.x(k)
 
-def grover_iteration(qc, marked, n):
+            # apply multi controlled Z gate
+            mcz(qc)
 
-    # %%%%%%%%%  oracle  %%%%%%%%%
-
-    zero_pos = []
-
-    # grab pos of zeros in marked
-    for ind, val in enumerate(marked):
-        if val == '0':
-            zero_pos.append(ind)
-
-    # flip qubits in position of zeros in marked
-    for k in zero_pos:
-        qc.x(k)
-
-    # apply multi controlled Z gate
-    mcz(qc)
-
-    # flip back
-    for l in zero_pos:
-        qc.x(l)
+            # flip back
+            for l in zero_pos:
+                qc.x(l)
 
 
-    # %%%%%%%%%  diffuser  %%%%%%%%%
+        # %%%%%%%%%  diffuser  %%%%%%%%%
 
-    qubits = range(n)
+        qubits = range(n)
 
-    qc.h(qubits) # |s> basis to |0> basis
+        qc.h(qubits) # |s> basis to |0> basis
 
-    #reflect about |0> basis
-    qc.x(qubits)
-    mcz(qc)
-    qc.x(qubits)
+        #reflect about |0> basis
+        qc.x(qubits)
+        mcz(qc)
+        qc.x(qubits)
 
-    qc.h(qubits) # |0> basis to |s> basis
+        qc.h(qubits) # |0> basis to |s> basis
 
+    # Run grover r times
+    for _ in range(num_iter):
+        grover_iteration(qc, marked_list, n)
+    # measure all qubits 
+    qc.measure(range(n), range(n))          
 
+    # run
+    counts = AerSimulator().run(qc, shots=samples).result().get_counts()
+    for marked in marked_list:
+        print(marked, "got", counts.get(marked, 0), "counts")
+    total = sum(counts.get(mk, 0) for mk in marked_list)
+    err = ((samples - total) / samples) * 100
+    print("Error rate of", round(err, 2), "%")
 
-
-num_iter = int((np.pi/4)*(np.sqrt(N/m)))
-
-for _ in range(num_iter):
-    grover_iteration(qc, marked, n)
-
-qc.measure(range(n), range(n))          # measure all qubits 
-print(qc.draw())
-
-
-# run
-counts = AerSimulator().run(qc, shots=samples).result().get_counts()
-print(marked, "got", counts.get(marked, 0), "counts")
-
-err = ((samples - counts.get(marked, 0)) / samples )* 100
-print("Error rate of", err,"%")
+list = "101110", "011011"
+Grovers_algo(6,list,5000)
