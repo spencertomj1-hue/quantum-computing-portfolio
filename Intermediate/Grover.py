@@ -7,7 +7,7 @@ from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
 import numpy as np
 from Functions import mcz
-import matplotlib.pyplot as plt
+
 
 
 def Grovers_algo(n,marked_list,samples):
@@ -40,7 +40,7 @@ def Grovers_algo(n,marked_list,samples):
             for k in zero_pos:
                 qc.x(k)
 
-            # apply multi controlled Z gate
+            # apply mcz gate to flip sign of target
             mcz(qc)
 
             # flip back
@@ -52,14 +52,16 @@ def Grovers_algo(n,marked_list,samples):
 
         qubits = range(n)
 
-        qc.h(qubits) # |s> basis to |0> basis
+        # |s> basis to |0> basis
+        qc.h(qubits) 
 
         #reflect about |0> basis
         qc.x(qubits)
         mcz(qc)
         qc.x(qubits)
 
-        qc.h(qubits) # |0> basis to |s> basis
+        # |0> basis to |s> basis
+        qc.h(qubits) 
 
     # Run grover r times
     for _ in range(num_iter):
@@ -68,12 +70,19 @@ def Grovers_algo(n,marked_list,samples):
     qc.measure(range(n), range(n))          
 
     # run
+
     counts = AerSimulator().run(qc, shots=samples).result().get_counts()
     for marked in marked_list:
         print(marked, "got", counts.get(marked, 0), "counts")
+
+    # reporting
     total = sum(counts.get(mk, 0) for mk in marked_list)
     err = ((samples - total) / samples) * 100
+
     print("Error rate of", round(err, 2), "%")
+
+
+# testing here 
 
 list = "101110", "011011"
 Grovers_algo(6,list,5000)
