@@ -40,7 +40,7 @@ def Grovers_algo(n,marked_list,samples):
             for k in zero_pos:
                 qc.x(k)
 
-            # apply mcz gate to flip sign of target
+            # apply mcz gate to flip sign of target, target is the only one with all 1s now
             mcz(qc)
 
             # flip back
